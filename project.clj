@@ -18,6 +18,7 @@
 
                  [org.clojure/core.memoize "0.5.8"]
 
+                 [incanter "1.5.7"]
                  [manifold "0.1.5"]
                  [funcool/cats "2.0.0"]
                  ])
