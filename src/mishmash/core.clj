@@ -1,5 +1,14 @@
-(ns mishmash.core)
+(ns mishmash.core
+  (require [potemkin.namespaces :as pot]
+           [mishmash.conv :as conv]
+           ))
 
+(defn import-ns-vars
+  [ns-symbol]
+  (pot/import-vars [])
+  )
+;; (pot/import-vars [conv ->str])
+;; (->str 3)
 ;; for debugging examples
 ;; (defmacro examples [& forms]
 ;;   `(do ~@forms))
