@@ -4,6 +4,7 @@
   (:require [clojure.pprint :as pp]
             [clojure.core.async :as a]
             [clojure.tools.logging :as logging]
+            [riemann.client :as r]
 
             ;; [cats.core :as m]
             ;; [cats.labs.manifold :as mf]
@@ -14,6 +15,38 @@
             ;; [manifold.stream :as s]
             ;; [manifold.executor :as e]
             ))
+
+(def riemann-repo (atom nil))
+(defn connect-riemann
+  ([] (connect-riemann "127.0.0.1"))
+  ([host] (reset! riemann-repo (r/tcp-client {:host host :port 5555}))))
+(defn stop-riemann []
+  (when @riemann-repo
+    (r/close! @riemann-repo)
+    (reset! riemann-repo nil)))
+(defn ensure-riemann []
+  (when-not @riemann-repo (connect-riemann)))
+(defn send-to-riemann
+  ([evt] (send-to-riemann @riemann-repo evt))
+  ([repo evt]
+   (ensure-riemann)
+   (-> repo
+       (r/send-event evt)
+       ;; (deref 5000 ::timed-out)
+       )))
+(defn query-riemann
+  [repo query]
+  (deref
+   (r/query repo query)
+   1000 :timed-out))
+
+;; (connect-riemann)
+;; (stop-riemann)
+;; (logr {:service "mishmash" :metric 5})
+;; (send-to-riemann @riemann-repo {:service "mishmash" :state "test" :tags ["speed" "dev"] :metric 32})
+;; (logr {:service "mishmash" :state "test" :tags ["speed" "dev"] :metric 99})
+;; (query-riemann @riemann-repo "service = \"mishmash\"")
+;; (query-riemann @riemann-repo "service = \"mishmash\" and state = \"test\"")
 
 (defn start
   []
@@ -43,14 +76,12 @@
   (last args))
 (defn logp
   [& args]
-  (println "---fd mefjj")
   (a/>!! logging-chan [#(apply pprint-fn %) args])
   (last args))
 
 (defn info
   [& args]
   (a/>!! logging-chan [#(logging/info %) args])
-  ;; (a/>!! logging-chan [(fn [v] (apply-macro logging/info v)) args])
   (last args))
 (defn debug
   [& args]
@@ -59,6 +90,12 @@
 (defn error
   [& args]
   (a/>!! logging-chan [#(logging/error %) args])
+  (last args))
+
+(defn logr
+  "log event to riemann"
+  [& args]
+  (a/>!! logging-chan [#(doseq [a %] (send-to-riemann a)) args])
   (last args))
 
 ;; (log 3 ["hey" (range 50)] "done")

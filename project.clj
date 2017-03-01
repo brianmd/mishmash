@@ -22,4 +22,6 @@
                  [incanter "1.5.7"]
                  [manifold "0.1.5"]
                  [funcool/cats "2.0.0"]
+
+                 [riemann-clojure-client "0.4.4"]
                  ])
