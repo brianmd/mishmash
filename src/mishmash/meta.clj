@@ -14,6 +14,10 @@
   (map #(.getName %) coll))
 
 
+(defn ns-functions
+  [ns-symbol]
+  (keys (ns-publics ns-symbol)))
+;; (ns-functions 'mishmash.meta)
 
 (defn find-class [klass-str]
   (Class/forName klass-str))
