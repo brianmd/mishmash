@@ -15,11 +15,6 @@
             ;; [manifold.executor :as e]
             ))
 
-
-;; (def logging-chan (a/chan 1024))
-;; (a/put! logging-chan 41)
-;; (a/take! logging-chan (fn [v] (println "got " v)))
-
 (defn start
   []
   (def logging-chan (a/chan 1024))
@@ -51,13 +46,6 @@
   (println "---fd mefjj")
   (a/>!! logging-chan [#(apply pprint-fn %) args])
   (last args))
-
-;; helper functions to enable #'apply work for logging macros
-;; see http://stackoverflow.com/questions/9273333/in-clojure-how-to-apply-a-macro-to-a-list
-(defmacro functionize [macro]
-  `(fn [& args#] (eval (cons '~macro args#))))
-(defmacro apply-macro [macro args]
-  `(apply (functionize ~macro) ~args))
 
 (defn info
   [& args]
