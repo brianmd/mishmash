@@ -2,6 +2,7 @@
   (:require [mishmash.conv :as sut]
             [clojure.test :refer :all]))
 
+
 (deftest str-conversion-test
   (are [x y] (= x (sut/->str y))
     ""        nil
@@ -17,6 +18,7 @@
   (are [x y] (= x (sut/->keyword y))
     :abc :abc
     :abc "abc"
+    :abc 'abc
     ))
 
 (deftest int-conversion-test

@@ -24,4 +24,5 @@
                  [funcool/cats "2.0.0"]
 
                  [riemann-clojure-client "0.4.4"]
+                 [circuit-breaker "0.1.8"]
                  ])

@@ -1,7 +1,7 @@
 (ns mishmash.core
-  (require [potemkin.namespaces :as pot]
-           [mishmash.conv :as conv]
-           ))
+  (:require [potemkin.namespaces :as pot]
+            [mishmash.conv :as conv]
+            ))
 
 (defn import-ns-vars
   [ns-symbol]
