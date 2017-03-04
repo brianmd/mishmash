@@ -1,5 +1,7 @@
-"Intention is to push logging off onto another thread soas
-to not hold up calling processes from doing real work"
+"Push logging off onto another thread soas
+to not hold up calling processes from doing real work.
+Also stop the interleaving of println messages by
+having only one thread print."
 
 (println "loading mishmash.log")
 
@@ -15,14 +17,13 @@ to not hold up calling processes from doing real work"
   []
   (reset! logging-chan (a/chan 1024))
   (a/go
-    (do
-      (loop []
-        (when-some [[f args] (a/<! @logging-chan)]
-          (try
-            (f args)
-            (catch Throwable e
-              (logging/error e "Error in logging go loop")))
-          (recur)))
+    (loop []
+      (when-some [[f args] (a/<! @logging-chan)]
+        (try
+          (f args)
+          (catch Throwable e
+            (logging/error e "Error in logging go loop")))
+        (recur))
       (println "exiting logging loop"))))
 
 (defn stop
