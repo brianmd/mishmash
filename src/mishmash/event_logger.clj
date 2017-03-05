@@ -106,9 +106,12 @@
 (defn log
   "log event to riemann"
   [& events]
-  (let [evts (doseq [e events] (merge *event* e))]
+  (let [evts (doall (map #(merge *event* %) events))]
     (a/>!! @logging-chan [#(doseq [e %] (send-to-riemann e)) evts])
     (last evts)))
+;; (log {:service "mishmash" :state "ok" :description "testing" :tags ["speed" "dev"] :metric 1})
+;; (send-to-riemann {:service "mishmash" :state "ok" :description "testing" :tags ["speed" "dev"] :metric 4})
+;; (send-to-riemann @riemann-repo {:service "mishmash" :state "critical" :tags ["slow"] :metric 2})
 
 (defn log-duration
   ([event f] (log-duration event f (fn [evt result] evt)))
@@ -136,12 +139,14 @@
        (if @error
          (throw @error)
          @result)))))
+;; (log-duration {:host "meta" :service "test" :metric 5} (fn [& args] 3))
+;; (log {:host "meta" :service "test" :metric 4})
 
 (restart)
 
 ;; (send-to-riemann {:service "mishmash" :state "ok" :description "testing" :tags ["speed" "dev"] :metric 41})
 ;; (send-to-riemann @riemann-repo {:service "mishmash" :state "ok" :description "testing" :tags ["speed" "dev"] :metric 41})
-;; (send-to-riemann @riemann-repo {:service "mishmash" :state "critical" :tags ["slow"] :metric 32})
+;; (send-to-riemann @riemann-repo {:service "mishmash" :state "critical" :tags ["slow"] :metric 2})
 ;; (send-to-riemann @riemann-repo {:service "query" :state "critical" :tags ["slow"] :metric 32 })
 ;; (send-to-riemann @riemann-repo {:service "query" :state "warning" :tags ["slow"] :metric 99})
 ;; ;; (send-to-riemann @riemann-repo {:service "query" :state "test2" :tags ["slow"] :metric 1099 :critical true})
