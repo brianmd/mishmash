@@ -1,12 +1,13 @@
 (ns mishmash.core
-  (:require [potemkin.namespaces :as pot]
+  (:require ;; [potemkin.namespaces :as pot]
+            [clojure.string :as string]
             [mishmash.conv :as conv]
             ))
 
-(defn import-ns-vars
-  [ns-symbol]
-  (pot/import-vars [])
-  )
+;; (defn import-ns-vars
+;;   [ns-symbol]
+;;   (pot/import-vars [])
+;;   )
 ;; (pot/import-vars [conv ->str])
 ;; (->str 3)
 ;; for debugging examples
@@ -55,3 +56,14 @@
 
 ;; (defmacro defn-memo [name & body]
 ;;   `(def ~name (memoize (fn ~body))))
+
+(defn getenv
+  ([name] (getenv name nil))
+  ([name default]
+   (let [s (System/getenv name)]
+     (if (nil? s)
+       default
+       (let [s (string/trim s)]
+         (if (string/blank? s)
+           default
+           s))))))

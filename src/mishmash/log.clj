@@ -23,8 +23,9 @@ having only one thread print."
           (f args)
           (catch Throwable e
             (logging/error e "Error in logging go loop")))
-        (recur))
-      (println "exiting logging loop"))))
+        (recur)))
+    (println "after logging loop")
+    ))
 
 (defn stop
   []
@@ -64,6 +65,9 @@ having only one thread print."
   (last args))
 
 (def log-event event-logger/log)
+;; if riemann host isn't configured, we want to
+;; print using our logger
+(reset! event-logger/riemann-alternative log)
 
 ; (stop)
 (restart)

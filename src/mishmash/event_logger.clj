@@ -3,11 +3,33 @@
   (:require [clojure.pprint :as pp]
             [clojure.core.async :as a]
             [clojure.tools.logging :as logging]
+            [mishmash.core :as mm]
             [riemann.client :as r]
             [mishmash.circuit-breaker :as cb]
+            [mishmash.conv :as conv]
             ))
 
+(def ^:dynamic *event* {})
+(defonce riemann-host (atom (mm/getenv "RIEMANN_HOST")))
+(defonce riemann-port
+  (atom (conv/->int (mm/getenv "RIEMANN_PORT" 5555))))
 (defonce logging-chan (atom nil))
+(defonce riemann-repo (atom nil))
+(defonce riemann-alternative (atom println))
+(cb/define :riemann {:timeout 300 :threshold 2})
+
+(defn use-riemann?
+  "returns true if a riemann host has been declared"
+  []
+  (not (nil? @riemann-host)))
+
+(defmacro with-merged-event
+  [options & body]
+  `(binding [~'mishmash.event-logger/*event* (merge ~'mishmash.event-logger/*event* ~options)]
+     ~@body))
+;; (with-merged-event {:a 4} *event*)
+;; (with-merged-event {:a 4} (with-event {:b 7} *event*))
+;; (with-merged-event {:a 4} (with-event {:b 7 :a 2} *event*))
 
 (defn start-logging
   []
@@ -19,8 +41,9 @@
           (f args)
           (catch Throwable e
             (logging/error e "Error in logging go loop")))
-        (recur))
-      (println "exiting logging loop"))))
+        (recur)))
+    (println "after logging loop")
+    ))
 
 (defn stop-logging
   []
@@ -28,13 +51,11 @@
     (a/close! @logging-chan)
     (reset! logging-chan nil)))
 
-(defonce riemann-repo (atom nil))
-
-(cb/define :riemann {:timeout 300 :threshold 2})
-
 (defn start-riemann
-  ([] (start-riemann (or (System/getenv "RIEMANN_HOST") "127.0.0.1")))
-  ([host] (reset! riemann-repo (r/tcp-client {:host host :port 5555}))))
+  ([] (start-riemann @riemann-host))
+  ([host] (start-riemann host @riemann-port))
+  ([host port] (when host
+            (reset! riemann-repo (r/tcp-client {:host host :port port})))))
 (defn stop-riemann
   []
   (when @riemann-repo
@@ -67,11 +88,13 @@
 (defn send-to-riemann
   ([evt] (send-to-riemann @riemann-repo evt))
   ([repo evt]
-   (cb/call
-    :riemann
-    (fn []
-      (ensure)
-      @(r/send-event repo evt)))))
+   (if (use-riemann?)
+     (cb/call
+      :riemann
+      (fn []
+        (ensure)
+        @(r/send-event repo (update evt :state #(conv/->str %)))))
+     (@riemann-alternative (str "event: " (pr-str evt))))))
 
 (defn query-riemann
   ([query] (query-riemann @riemann-repo query))
@@ -82,9 +105,37 @@
 
 (defn log
   "log event to riemann"
-  [& args]
-  (a/>!! @logging-chan [#(doseq [a %] (send-to-riemann a)) args])
-  (last args))
+  [& events]
+  (let [evts (doseq [e events] (merge *event* e))]
+    (a/>!! @logging-chan [#(doseq [e %] (send-to-riemann e)) evts])
+    (last evts)))
+
+(defn log-duration
+  ([event f] (log-duration event f (fn [evt result] evt)))
+  ([event f log-result-fn]
+   (log-duration event f log-result-fn (fn [evt error] evt)))
+  ([event f log-result-fn log-error-fn]
+   (let [result (atom nil)
+         error (atom nil)
+         start-time (System/nanoTime)
+         ]
+     (try
+       (reset! result (f))
+       (catch Throwable e
+         (reset! error e)))
+     (let [duration (/ (- (System/nanoTime) start-time) 1e6)]
+       (log event
+            (if @error
+              (log (log-error-fn
+                    (merge {:state "critical" :metric duration :error (str @error)} event)
+                    @error))
+              (log (log-result-fn
+                    (merge {:state "ok" :metric duration} event)
+                    @result))
+              ))
+       (if @error
+         (throw @error)
+         @result)))))
 
 (restart)
 
