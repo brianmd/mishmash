@@ -1,4 +1,4 @@
-(defproject com.murphydye/mishmash "0.1.1-SNAPSHOT"
+(defproject com.murphydye/mishmash "0.1.2-SNAPSHOT"
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -19,9 +19,11 @@
 
                  [org.clojure/core.memoize "0.5.8"]
 
-                 [incanter "1.5.7"]
-                 [manifold "0.1.5"]
-                 [funcool/cats "2.0.0"]
+                 [org.bouncycastle/bcprov-jdk15on "1.55"]
+                 [org.bouncycastle/bcpkix-jdk15on "1.55"]
+                 [incanter "1.5.7" :exclusions [bouncycastle/bcprov-jdk14 bouncycastle/bcpkix-jdk14]]
+                 ;; [manifold "0.1.5"]
+                 ;; [funcool/cats "2.0.0"]
 
                  [riemann-clojure-client "0.4.4"]
                  [circuit-breaker "0.1.8"]
